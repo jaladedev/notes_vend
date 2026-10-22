@@ -1,0 +1,28 @@
+:root { --bg:#f6f5f1; --card:#fff; --ink:#1d2320; --soft:#5d675f; --rule:#dcd9cf; --ok:#1f6b45; --warn:#9a6700; --bad:#a73a2b; --off:#6b7280; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171a; --card:#1c2024; --ink:#e8ebe9; --soft:#9aa5a0; --rule:#2c3236; --ok:#5fcf93; --warn:#e5b43c; --bad:#ef8575; --off:#9ca3af; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+a { color:inherit; }
+.wrap { max-width:1100px; margin:0 auto; padding:20px 16px 48px; }
+header.bar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; }
+h1 { font-size:20px; margin:0; } h2 { font-size:16px; margin:24px 0 8px; }
+.soft { color:var(--soft); font-size:13px; }
+.card { background:var(--card); border:1px solid var(--rule); border-radius:10px; padding:14px 16px; }
+.tablewrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; min-width:760px; }
+th,td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--rule); vertical-align:top; }
+th { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--soft); font-weight:600; }
+.pill { display:inline-block; padding:1px 9px; border-radius:99px; font-size:12px; font-weight:600; border:1px solid currentColor; }
+.ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)} .off{color:var(--off)}
+form.row { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+label { display:flex; flex-direction:column; gap:3px; font-size:13px; color:var(--soft); }
+input { font:inherit; padding:7px 9px; border:1px solid var(--rule); border-radius:7px; background:var(--bg); color:var(--ink); min-width:0; }
+button { font:inherit; padding:7px 14px; border-radius:7px; border:1px solid var(--ink); background:var(--ink); color:var(--bg); cursor:pointer; }
+button.ghost { background:transparent; color:var(--ink); border-color:var(--rule); }
+button.danger { background:transparent; color:var(--bad); border-color:var(--bad); }
+.msg { padding:9px 12px; border-radius:8px; margin-bottom:14px; border:1px solid; }
+.msg.err { color:var(--bad); } .msg.good { color:var(--ok); }
+.login { max-width:360px; margin:12vh auto; }
+.login form { display:flex; flex-direction:column; gap:12px; }
