@@ -8,6 +8,11 @@ export function stateLabel(sub: SchoolStatus["subscription"]): { text: string; t
       return sub.daysLeft !== null && sub.daysLeft <= 14
         ? { text: `ends in ${sub.daysLeft}d`, tone: "warn" }
         : { text: "active", tone: "ok" };
+    case "grace":
+      return {
+        text: sub.daysLeft === 0 ? "grace · last day" : `grace · ${sub.daysLeft ?? "?"}d left`,
+        tone: "warn",
+      };
     case "upcoming": return { text: "not started", tone: "warn" };
     case "expired": return { text: "expired", tone: "bad" };
   }

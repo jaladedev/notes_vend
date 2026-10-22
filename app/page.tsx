@@ -82,7 +82,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
                       {d.subscriptionError && <div className="soft">0036 not applied?</div>}
                     </td>
                     <td>{d.subscription?.academicYear ?? <span className="soft">—</span>}</td>
-                    <td>{d.subscription?.endsOn ?? <span className="soft">—</span>}</td>
+                    <td>
+                      {d.subscription?.endsOn ?? <span className="soft">—</span>}
+                      {d.subscription?.state === "grace" && d.subscription.graceEndsOn && (
+                        <div className="warn" style={{ fontSize: 12 }}>access until {d.subscription.graceEndsOn}</div>
+                      )}
+                    </td>
                     <td className="soft">{u.teacher ?? 0} teachers · {u.student ?? 0} students · {u.parent ?? 0} parents</td>
                     <td>
                       <span className={behind ? "warn" : "soft"}>{d.latestMigration ?? "—"}</span>

@@ -42,7 +42,13 @@ export default async function SchoolPage({
           <p style={{ margin: 0 }}>
             <span className={`pill ${label!.tone}`}>{label!.text}</span>{" "}
             <span className="soft">
-              {status.data.subscription?.academicYear ? `${status.data.subscription.academicYear} · ends ${status.data.subscription.endsOn}` : "no session recorded"}
+              {status.data.subscription?.academicYear
+                ? `${status.data.subscription.academicYear} · ends ${status.data.subscription.endsOn}${
+                    status.data.subscription.state === "grace" && status.data.subscription.graceEndsOn
+                      ? ` · access until ${status.data.subscription.graceEndsOn}`
+                      : ""
+                  }`
+                : "no session recorded"}
               {" · schema "}{status.data.latestMigration ?? "unknown"}
             </span>
           </p>
@@ -58,11 +64,14 @@ export default async function SchoolPage({
           <label>Academic year<input name="academicYear" placeholder="2026/2027" required maxLength={40} /></label>
           <label>Starts<input name="startsOn" type="date" required /></label>
           <label>Ends<input name="endsOn" type="date" required /></label>
+          <label>Grace days<input name="graceDays" type="number" min={0} max={60} step={1} placeholder="7 (default)" /></label>
           <label>Note (optional)<input name="note" placeholder="Paid, ref 4471" maxLength={500} /></label>
           <button type="submit">Record</button>
         </form>
         <p className="soft" style={{ marginBottom: 0 }}>
           The first session recorded turns gating on for this school. To extend, add a session covering the new dates.
+          Grace days is how long the school keeps access after the end date, with a renewal warning for its admins
+          (0 = none; blank uses the school&apos;s default of 7). Needs migration 0039 on the school.
         </p>
       </div>
 
@@ -74,13 +83,14 @@ export default async function SchoolPage({
           <span className="soft">None yet. Gating is off for this school.</span>
         ) : (
           <table style={{ minWidth: 560 }}>
-            <thead><tr><th>Session</th><th>Starts</th><th>Ends</th><th>Note</th><th /></tr></thead>
+            <thead><tr><th>Session</th><th>Starts</th><th>Ends</th><th>Grace</th><th>Note</th><th /></tr></thead>
             <tbody>
               {subs.data.subscriptions.map((s) => (
                 <tr key={s.id}>
                   <td>{s.academic_year}</td>
                   <td>{s.starts_on}</td>
                   <td>{s.ends_on}</td>
+                  <td>{s.grace_days === undefined ? <span className="soft">—</span> : `${s.grace_days}d`}</td>
                   <td className="soft">{s.note ?? ""}</td>
                   <td>
                     <form action={removeSubscriptionAction}>

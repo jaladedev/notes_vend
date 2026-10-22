@@ -5,7 +5,7 @@ import type { School } from "@/lib/schools";
 
 const TIMEOUT_MS = 8000;
 
-export type SubscriptionState = "off" | "active" | "upcoming" | "expired";
+export type SubscriptionState = "off" | "active" | "grace" | "upcoming" | "expired";
 
 export type SchoolStatus = {
   schoolName: string | null;
@@ -17,7 +17,10 @@ export type SchoolStatus = {
     academicYear: string | null;
     startsOn: string | null;
     endsOn: string | null;
+    /** active: days until ends. grace: days of grace left (0 = last day). */
     daysLeft: number | null;
+    /** Last day access continues after the session ends. Absent on schools without migration 0039. */
+    graceEndsOn?: string | null;
   } | null;
   subscriptionError: string | null;
   activeUsers: Record<string, number>;
@@ -28,6 +31,8 @@ export type Subscription = {
   academic_year: string;
   starts_on: string;
   ends_on: string;
+  /** Absent on schools without migration 0039. */
+  grace_days?: number;
   note: string | null;
   created_at: string;
 };
@@ -75,7 +80,7 @@ async function call<T>(school: School, method: string, pathAndQuery: string, bod
 export const fetchStatus = (s: School) => call<SchoolStatus & { status: string }>(s, "GET", "/api/platform/status");
 export const listSubscriptions = (s: School) =>
   call<{ subscriptions: Subscription[] }>(s, "GET", "/api/platform/subscriptions");
-export const addSubscription = (s: School, input: { academicYear: string; startsOn: string; endsOn: string; note?: string }) =>
+export const addSubscription = (s: School, input: { academicYear: string; startsOn: string; endsOn: string; note?: string; graceDays?: number }) =>
   call<{ subscription: Subscription }>(s, "POST", "/api/platform/subscriptions", JSON.stringify(input));
 export const removeSubscription = (s: School, id: string) =>
   call<{ deleted: string }>(s, "DELETE", `/api/platform/subscriptions?id=${encodeURIComponent(id)}`);

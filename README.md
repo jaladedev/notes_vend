@@ -25,7 +25,10 @@ per-school secret, **never** a school's database keys.
    (or deploy to Vercel with the same env vars).
 
 Each school must have applied migration `0036` for the subscription columns to
-show; a school without it shows "0036 not applied?".
+show; a school without it shows "0036 not applied?". Grace periods (a `grace`
+state, grace days on the add-session form, the "access until" date) need
+migration `0039` on the school. A school without it still works, but ignores
+grace days; the dashboard tells you when that happens.
 
 ## What it does and doesn't protect
 

@@ -34,6 +34,11 @@ describe("presentation helpers", () => {
     expect(stateLabel({ state: "expired", academicYear: null, startsOn: null, endsOn: null, daysLeft: null }).tone).toBe("bad");
     expect(stateLabel({ state: "active", academicYear: "x", startsOn: "a", endsOn: "b", daysLeft: 40 })).toEqual({ text: "active", tone: "ok" });
     expect(stateLabel({ state: "active", academicYear: "x", startsOn: "a", endsOn: "b", daysLeft: 14 })).toEqual({ text: "ends in 14d", tone: "warn" });
+    const grace = (daysLeft: number | null) =>
+      stateLabel({ state: "grace", academicYear: "x", startsOn: "a", endsOn: "b", daysLeft, graceEndsOn: "c" });
+    expect(grace(5)).toEqual({ text: "grace · 5d left", tone: "warn" });
+    expect(grace(0)).toEqual({ text: "grace · last day", tone: "warn" });
+    expect(grace(null)).toEqual({ text: "grace · ?d left", tone: "warn" });
   });
   it("finds the newest migration among schools", () => {
     expect(newestMigration(["0035_a.sql", null, "0036_b.sql"])).toBe("0036_b.sql");
