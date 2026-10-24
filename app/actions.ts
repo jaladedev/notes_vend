@@ -25,11 +25,11 @@ export async function login(formData: FormData) {
   const passwordOk = verifyPassword(password, process.env.OPERATOR_PASSWORD_HASH);
   const totpOk = totpSecret ? verifyTotp(totpSecret, code) : true;
   if (!passwordOk || !totpOk) {
-    audit("login.failed", {});
+    await audit("login.failed");
     back("/login", "error", "Incorrect password or code.");
   }
   await startSession();
-  audit("login.ok", {});
+  await audit("login.ok");
   redirect("/");
 }
 
@@ -60,7 +60,7 @@ export async function addSubscriptionAction(formData: FormData) {
     ...(graceDays === undefined ? {} : { graceDays }),
   };
   const result = await addSubscription(school, input);
-  audit("subscription.add", { school: slug, ...input, ok: result.ok, error: result.ok ? undefined : result.error });
+  await audit("subscription.add", { school: slug, ...input, ok: result.ok, error: result.ok ? undefined : result.error });
   revalidatePath("/");
   revalidatePath(path);
   if (!result.ok) back(path, "error", result.error);
@@ -80,7 +80,7 @@ export async function removeSubscriptionAction(formData: FormData) {
   const path = `/schools/${slug}`;
 
   const result = await removeSubscription(school, id);
-  audit("subscription.remove", { school: slug, id, ok: result.ok, error: result.ok ? undefined : result.error });
+  await audit("subscription.remove", { school: slug, id, ok: result.ok, error: result.ok ? undefined : result.error });
   revalidatePath("/");
   revalidatePath(path);
   if (!result.ok) back(path, "error", result.error);

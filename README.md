@@ -43,9 +43,14 @@ grace days; the dashboard tells you when that happens.
   limiting, an IP allowlist or an access proxy (Cloudflare Access, Vercel
   deployment protection).
 - One shared operator password, not per-person accounts.
-- Operator actions are written as JSON lines to stdout
-  (`kind: "platform.audit"`). That is a log, not a tamper-proof audit store;
-  send it to an append-only sink if you need one.
+- Operator actions are always written as JSON lines to stdout
+  (`kind: "platform.audit"`). To also keep them durably, create a Supabase
+  project in **your own** account (not a school's), run `supabase/audit_log.sql`
+  in its SQL editor, and set `AUDIT_SUPABASE_URL` and
+  `AUDIT_SUPABASE_SERVICE_KEY` here. The table is append-only (updates,
+  deletes and truncates are rejected, even for the service key) and is shown
+  on the dashboard's **Audit log** page. A failed write is logged and never
+  blocks the action.
 - "Remove" asks for no confirmation, and removing a school's last session
   turns its gating off.
 

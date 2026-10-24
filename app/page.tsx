@@ -50,7 +50,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
             {rows.length} school{rows.length === 1 ? "" : "s"} · {counts.attention} need attention · {expiringSoon} expiring within 30 days · {counts.unreachable} unreachable
           </span>
         </div>
-        <form action={logout}><button className="ghost" type="submit">Sign out</button></form>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <Link href="/audit">Audit log</Link>
+          <form action={logout}><button className="ghost" type="submit">Sign out</button></form>
+        </div>
       </header>
 
       {error && <div className="msg err" role="alert">{error}</div>}
