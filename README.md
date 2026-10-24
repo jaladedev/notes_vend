@@ -10,12 +10,17 @@ per-school secret, **never** a school's database keys.
 
 ## Configure
 
-1. Generate operator sign-in values:
+1. Generate operator sign-in values. **Named operators (recommended):** for
+   each person run `npm run hash-password -- 'their long passphrase' --user ada`.
+   It prints a JSON entry with that person's password hash and their own
+   authenticator secret (add it to their authenticator app: manual entry,
+   6 digits, 30 s, SHA-1). Put all entries in one array:
+   `OPERATORS_JSON=[{"name":"ada","passwordHash":"...","totpSecret":"..."}, ...]`
+   and set `SESSION_SECRET` (any 32+ random characters). To revoke someone,
+   remove their entry and redeploy. **Single shared login (older setup):**
    `npm run hash-password -- 'a long passphrase'` prints
-   `OPERATOR_PASSWORD_HASH`, `SESSION_SECRET` and `OPERATOR_TOTP_SECRET`.
-   Add the TOTP secret to an authenticator app (manual entry, 6 digits, 30 s,
-   SHA-1) and keep it in the env; sign-in then needs password + code. Leave
-   `OPERATOR_TOTP_SECRET` unset to skip the code (not recommended).
+   `OPERATOR_PASSWORD_HASH`, `SESSION_SECRET` and `OPERATOR_TOTP_SECRET`; this
+   still works while `OPERATORS_JSON` is unset.
 2. On each school deployment set `PLATFORM_SECRET` (32+ random characters,
    different per school: `openssl rand -hex 32`).
 3. Here, set `SCHOOLS_JSON` -- one entry per school, `secret` equal to that
@@ -38,11 +43,17 @@ grace days; the dashboard tells you when that happens.
 
 - Pages and server actions all re-check a signed, 8-hour, httpOnly,
   SameSite=Strict session cookie.
-- `/login` has a flat 600 ms delay per attempt, **not** real rate limiting
-  (serverless instances don't share memory). Put it behind your host's rate
-  limiting, an IP allowlist or an access proxy (Cloudflare Access, Vercel
-  deployment protection).
-- One shared operator password, not per-person accounts.
+- Sign-in is rate limited: 5 failed attempts for one username from one
+  address, or 20 from one address, lock that address out for 15 minutes.
+  A username alone never locks, so nobody can lock an operator out from
+  elsewhere. Counts come from the audit store below, so they are shared across
+  serverless instances; without the store they are kept in memory, per
+  instance only (weaker). The address is read from `x-forwarded-for`, so host
+  behind a proxy that sets it (Vercel does). Keep your host's own rate limiting
+  or access proxy as well if you can.
+- Each operator has their own password and authenticator code, and every audited
+  action records who did it (the audit log's `operator` field). With the older
+  single login, that name is just `operator`.
 - Operator actions are always written as JSON lines to stdout
   (`kind: "platform.audit"`). To also keep them durably, create a Supabase
   project in **your own** account (not a school's), run `supabase/audit_log.sql`

@@ -30,10 +30,38 @@ function sign(secret: string, payload: string): string {
   return createHmac("sha256", secret).update(payload).digest("base64url");
 }
 
-export function createSessionToken(secret: string, nowSeconds = Math.floor(Date.now() / 1000)): string {
+export function createSessionToken(
+  secret: string,
+  nowSeconds = Math.floor(Date.now() / 1000),
+  operator?: string
+): string {
   if (secret.length < MIN_SESSION_SECRET) throw new Error("SESSION_SECRET must be at least 32 characters.");
-  const payload = Buffer.from(JSON.stringify({ exp: nowSeconds + SESSION_TTL_SECONDS })).toString("base64url");
+  const payload = Buffer.from(
+    JSON.stringify({ exp: nowSeconds + SESSION_TTL_SECONDS, ...(operator ? { op: operator } : {}) })
+  ).toString("base64url");
   return `${payload}.${sign(secret, payload)}`;
+}
+
+/** The signed-in operator's name, or null when the token is missing, forged or expired. */
+export function readSessionOperator(
+  secret: string | undefined,
+  token: string | undefined,
+  nowSeconds = Math.floor(Date.now() / 1000)
+): string | null {
+  if (!secret || secret.length < MIN_SESSION_SECRET || !token) return null;
+  const [payload, sig] = token.split(".");
+  if (!payload || !sig) return null;
+  const a = Buffer.from(sign(secret, payload));
+  const b = Buffer.from(sig);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  try {
+    const { exp, op } = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { exp?: unknown; op?: unknown };
+    if (typeof exp !== "number" || exp <= nowSeconds) return null;
+    // Tokens issued before named operators carry no name.
+    return typeof op === "string" && op ? op : "operator";
+  } catch {
+    return null;
+  }
 }
 
 export function verifySessionToken(
@@ -41,16 +69,5 @@ export function verifySessionToken(
   token: string | undefined,
   nowSeconds = Math.floor(Date.now() / 1000)
 ): boolean {
-  if (!secret || secret.length < MIN_SESSION_SECRET || !token) return false;
-  const [payload, sig] = token.split(".");
-  if (!payload || !sig) return false;
-  const a = Buffer.from(sign(secret, payload));
-  const b = Buffer.from(sig);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
-  try {
-    const { exp } = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { exp?: unknown };
-    return typeof exp === "number" && exp > nowSeconds;
-  } catch {
-    return false;
-  }
+  return readSessionOperator(secret, token, nowSeconds) !== null;
 }

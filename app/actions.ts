@@ -1,10 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { endSession, requireOperator, startSession } from "@/lib/auth";
-import { verifyPassword } from "@/lib/session";
-import { verifyTotp } from "@/lib/totp";
+import { authenticate, normalizeUsername, usesNamedOperators, LEGACY_OPERATOR } from "@/lib/operators";
+import { clientIp, currentCounts, isLimited, recordFailureInMemory, WINDOW_MINUTES } from "@/lib/loginLimit";
 import { getSchool } from "@/lib/schools";
 import { addSubscription, removeSubscription } from "@/lib/schoolClient";
 import { audit } from "@/lib/audit";
@@ -16,20 +17,29 @@ function back(path: string, kind: "error" | "ok", message: string): never {
 export async function login(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const code = String(formData.get("code") ?? "").trim();
-  const totpSecret = process.env.OPERATOR_TOTP_SECRET;
+  const named = usesNamedOperators();
+  const username = named ? normalizeUsername(String(formData.get("username") ?? "")) : LEGACY_OPERATOR;
+  const ip = clientIp(await headers());
 
-  // A flat delay on every attempt. In-memory counters don't survive
-  // serverless instances, so put real rate limiting at the edge (see README).
+  // Too many recent failures from this address (or for this username from
+  // it): refuse before even checking the password. Counts are shared through
+  // the audit store; see lib/loginLimit.ts.
+  if (isLimited(await currentCounts(username, ip))) {
+    await audit("login.locked", { operator: username, ip });
+    back("/login", "error", `Too many failed attempts. Try again in ${WINDOW_MINUTES} minutes.`);
+  }
+
+  // Small flat delay on every attempt, on top of the limit above.
   await new Promise((r) => setTimeout(r, 600));
 
-  const passwordOk = verifyPassword(password, process.env.OPERATOR_PASSWORD_HASH);
-  const totpOk = totpSecret ? verifyTotp(totpSecret, code) : true;
-  if (!passwordOk || !totpOk) {
-    await audit("login.failed");
-    back("/login", "error", "Incorrect password or code.");
+  const operator = authenticate({ username, password, code });
+  if (!operator) {
+    recordFailureInMemory(username, ip);
+    await audit("login.failed", { operator: username, ip });
+    back("/login", "error", "Incorrect username, password or code.");
   }
-  await startSession();
-  await audit("login.ok");
+  await startSession(operator);
+  await audit("login.ok", { operator, ip });
   redirect("/");
 }
 
@@ -39,7 +49,7 @@ export async function logout() {
 }
 
 export async function addSubscriptionAction(formData: FormData) {
-  await requireOperator();
+  const operator = await requireOperator();
   const slug = String(formData.get("slug") ?? "");
   const school = getSchool(slug);
   if (!school) back("/", "error", "Unknown school.");
@@ -60,7 +70,7 @@ export async function addSubscriptionAction(formData: FormData) {
     ...(graceDays === undefined ? {} : { graceDays }),
   };
   const result = await addSubscription(school, input);
-  await audit("subscription.add", { school: slug, ...input, ok: result.ok, error: result.ok ? undefined : result.error });
+  await audit("subscription.add", { operator, school: slug, ...input, ok: result.ok, error: result.ok ? undefined : result.error });
   revalidatePath("/");
   revalidatePath(path);
   if (!result.ok) back(path, "error", result.error);
@@ -72,7 +82,7 @@ export async function addSubscriptionAction(formData: FormData) {
 }
 
 export async function removeSubscriptionAction(formData: FormData) {
-  await requireOperator();
+  const operator = await requireOperator();
   const slug = String(formData.get("slug") ?? "");
   const id = String(formData.get("id") ?? "");
   const school = getSchool(slug);
@@ -80,7 +90,7 @@ export async function removeSubscriptionAction(formData: FormData) {
   const path = `/schools/${slug}`;
 
   const result = await removeSubscription(school, id);
-  await audit("subscription.remove", { school: slug, id, ok: result.ok, error: result.ok ? undefined : result.error });
+  await audit("subscription.remove", { operator, school: slug, id, ok: result.ok, error: result.ok ? undefined : result.error });
   revalidatePath("/");
   revalidatePath(path);
   if (!result.ok) back(path, "error", result.error);

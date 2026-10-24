@@ -8,6 +8,8 @@ create table if not exists public.platform_audit_log (
   detail jsonb not null default '{}'::jsonb
 );
 create index if not exists platform_audit_log_at_idx on public.platform_audit_log (at desc);
+-- Login rate limiting counts recent 'login.failed' rows per IP / operator.
+create index if not exists platform_audit_log_action_at_idx on public.platform_audit_log (action, at desc);
 
 alter table public.platform_audit_log enable row level security;
 revoke all on public.platform_audit_log from public, anon, authenticated;
