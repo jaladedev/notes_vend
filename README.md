@@ -24,6 +24,10 @@ per-school secret, **never** a school's database keys.
 4. `npm install --legacy-peer-deps && npm run build && npm start`
    (or deploy to Vercel with the same env vars).
 
+The overview lists schools soonest-expiry first (unreachable ones on top), with the
+session end, the last day of access (grace end when set) and days left, and counts
+schools whose access ends within 30 days.
+
 Each school must have applied migration `0036` for the subscription columns to
 show; a school without it shows "0036 not applied?". Grace periods (a `grace`
 state, grace days on the add-session form, the "access until" date) need
